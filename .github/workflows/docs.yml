@@ -27,22 +27,17 @@ jobs:
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.2.1
     - name: Build Documentation
-      run: cargo +nightly doc
+      run: >-
+        RUSTDOCFLAGS="-Z unstable-options --enable-index-page"
+        cargo +nightly doc
+        --no-deps
+        --all
     - name: Setup Pages
       uses: actions/configure-pages@v3
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
-        # Upload entire repository
         path: ./target/doc
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v1
-
-    # - name: Deploy Docs
-    #   uses: peaceiris/actions-gh-pages@364c31d33bb99327c77b3a5438a83a357a6729ad
-    #   with:
-    #     github_token: ${{ secrets.GITHUB_TOKEN }}
-    #     publish_branch: rustdocs
-    #     publish_dir: ./target/doc
-    #     force_orphan: true
