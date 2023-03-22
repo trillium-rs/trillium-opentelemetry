@@ -88,7 +88,7 @@ impl Metrics {
     /// for use with [`trillium-router`](https://docs.trillium.rs/trillium_router/index.html),
     /// ```
     /// use trillium_router::RouterConnExt;
-    /// Metrics::new("example").with_route(|conn| conn.route().map(|r| r.to_string()));
+    /// trillium_opentelemetry::Metrics::new("example").with_route(|conn| conn.route().map(|r| r.to_string()));
     /// ```
     pub fn with_route<F>(mut self, route: F) -> Self
     where

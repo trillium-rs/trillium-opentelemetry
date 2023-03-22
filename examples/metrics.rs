@@ -7,7 +7,7 @@ use opentelemetry::{
     },
 };
 use opentelemetry_otlp::{new_exporter, new_pipeline};
-use trillium_opentelemetry_metrics::Metrics;
+use trillium_opentelemetry::Metrics;
 use trillium_router::{router, RouterConnExt};
 
 fn set_up_collector() {
