@@ -15,7 +15,11 @@ use opentelemetry::{
     metrics::{Histogram, Unit},
     Context, KeyValue,
 };
-use std::{sync::Arc, time::Instant, fmt::{Debug, Formatter, self}};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::Arc,
+    time::Instant,
+};
 use trillium::{async_trait, Conn, Handler, Info, KnownHeaderName, Status};
 
 type RouteFn = dyn Fn(&Conn) -> Option<String> + Send + Sync + 'static;
