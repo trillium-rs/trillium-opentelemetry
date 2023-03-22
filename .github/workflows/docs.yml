@@ -22,14 +22,14 @@ jobs:
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.2.1
     - name: Build Documentation
-      run: cargo +nightly doc --no-deps --all
+      run: cargo +nightly doc
     - name: Setup Pages
       uses: actions/configure-pages@v3
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
         # Upload entire repository
-        path: 'target/docs'
+        path: ./target/doc
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v1
