@@ -23,10 +23,21 @@ jobs:
       uses: Swatinem/rust-cache@v2.2.1
     - name: Build Documentation
       run: cargo +nightly doc --no-deps --all
-    - name: Deploy Docs
-      uses: peaceiris/actions-gh-pages@bd8c6b06eba6b3d25d72b7a1767993c0aeee42e7
+    - name: Setup Pages
+      uses: actions/configure-pages@v3
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v1
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_branch: rustdocs
-        publish_dir: ./target/doc
-        force_orphan: true
+        # Upload entire repository
+        path: 'target/docs'
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v1
+
+    # - name: Deploy Docs
+    #   uses: peaceiris/actions-gh-pages@364c31d33bb99327c77b3a5438a83a357a6729ad
+    #   with:
+    #     github_token: ${{ secrets.GITHUB_TOKEN }}
+    #     publish_branch: rustdocs
+    #     publish_dir: ./target/doc
+    #     force_orphan: true
