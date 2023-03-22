@@ -4,7 +4,7 @@ This crate provides opentelemetry metrics conforming to [semantic conventions fo
 
 ## Usage:
 
-```
+```rust
 use trillium_opentelemetry::metrics;
 use trillium_router::{router, RouterConnExt};
 
