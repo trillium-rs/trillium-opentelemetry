@@ -15,7 +15,7 @@ opentelemetry = { version = "0.18.0", features = ["metrics"], default-features =
 trillium = "0.2.6"
 
 [dev-dependencies]
-opentelemetry-otlp = { version = "0.11.0", features = ["metrics", "tokio"] }
+opentelemetry-otlp = { version = "0.12.0", features = ["metrics", "tokio"] }
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 tokio = "1.26.0"
 trillium-router = "0.3.5"
