@@ -29,7 +29,7 @@ type RouteFn = dyn Fn(&Conn) -> Option<String> + Send + Sync + 'static;
 #[derive(Clone)]
 pub struct Metrics {
     route: Option<Arc<RouteFn>>,
-    duration_histogram: Histogram<u64>,
+    duration_histogram: Histogram<f64>,
     request_size_histogram: Histogram<u64>,
     response_size_histogram: Histogram<u64>,
     port: Option<u16>,
@@ -66,9 +66,9 @@ impl Metrics {
             route: None,
             port: None,
             duration_histogram: meter
-                .u64_histogram("http.server.duration")
+                .f64_histogram("http.server.duration")
                 .with_description("Measures the duration of inbound HTTP requests.")
-                .with_unit(Unit::new("ms"))
+                .with_unit(Unit::new("s"))
                 .init(),
 
             request_size_histogram: meter
@@ -143,10 +143,7 @@ impl Handler for Metrics {
         let version = conn.inner().http_version().as_str();
 
         conn.inner_mut().after_send(move |_| {
-            let duration_ms = (Instant::now() - start_time)
-                .as_millis()
-                .try_into()
-                .unwrap_or(u64::MAX);
+            let duration_s = (Instant::now() - start_time).as_secs_f64();
 
             let mut attributes = vec![
                 KeyValue::new("http.method", method),
@@ -173,7 +170,7 @@ impl Handler for Metrics {
 
             let context = Context::current();
 
-            duration_histogram.record(&context, duration_ms, &attributes);
+            duration_histogram.record(&context, duration_s, &attributes);
 
             if let Some(response_len) = response_len {
                 response_size_histogram.record(&context, response_len, &attributes);
