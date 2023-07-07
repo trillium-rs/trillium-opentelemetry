@@ -1,5 +1,5 @@
 use opentelemetry::{
-    global::{meter, set_meter_provider},
+    global::set_meter_provider,
     runtime::Tokio,
     sdk::{
         export::metrics::aggregation::stateless_temporality_selector,
@@ -28,7 +28,7 @@ pub async fn main() {
     set_up_collector();
 
     trillium_tokio::run_async((
-        Metrics::new(&meter("example-app")).with_route(|conn| conn.route().map(|r| r.to_string())),
+        Metrics::new("example-app").with_route(|conn| conn.route().map(|r| r.to_string())),
         router().get("/some/:path", "ok"),
     ))
     .await;
