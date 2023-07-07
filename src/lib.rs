@@ -11,6 +11,7 @@
 )]
 
 use opentelemetry::{
+    global,
     metrics::{Histogram, Meter, Unit},
     Context, KeyValue,
 };
@@ -52,14 +53,26 @@ impl Debug for Metrics {
     }
 }
 
-/// constructs a [`Metrics`] handler. alias for [`Metrics::new`]
-pub fn metrics(meter: &Meter) -> Metrics {
-    Metrics::new(meter)
+/// Constructs a [`Metrics`] handler from a &'static str or
+/// &[`Meter`]. Alias for [`Metrics::new`] and [`Metrics::from`]
+pub fn metrics(meter: impl Into<Metrics>) -> Metrics {
+    meter.into()
 }
 
-impl Metrics {
-    /// Constructs a new [`Metrics`] handler
-    pub fn new(meter: &Meter) -> Self {
+impl From<&'static str> for Metrics {
+    fn from(value: &'static str) -> Self {
+        global::meter(value).into()
+    }
+}
+
+impl From<Meter> for Metrics {
+    fn from(value: Meter) -> Self {
+        (&value).into()
+    }
+}
+
+impl From<&Meter> for Metrics {
+    fn from(meter: &Meter) -> Self {
         Self {
             route: None,
             port: None,
@@ -81,6 +94,13 @@ impl Metrics {
                 .with_unit(Unit::new("By"))
                 .init(),
         }
+    }
+}
+
+impl Metrics {
+    /// Constructs a new [`Metrics`] handler from a &'static str, &[`Meter`] or [`Meter`]
+    pub fn new(meter: impl Into<Metrics>) -> Self {
+        meter.into()
     }
 
     /// provides a route specification to the metrics collector.
