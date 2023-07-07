@@ -11,8 +11,7 @@
 )]
 
 use opentelemetry::{
-    global,
-    metrics::{Histogram, Unit},
+    metrics::{Histogram, Meter, Unit},
     Context, KeyValue,
 };
 use std::{
@@ -54,14 +53,13 @@ impl Debug for Metrics {
 }
 
 /// constructs a [`Metrics`] handler. alias for [`Metrics::new`]
-pub fn metrics(meter: &'static str) -> Metrics {
+pub fn metrics(meter: &Meter) -> Metrics {
     Metrics::new(meter)
 }
 
 impl Metrics {
     /// Constructs a new [`Metrics`] handler
-    pub fn new(meter: &'static str) -> Self {
-        let meter = global::meter(meter);
+    pub fn new(meter: &Meter) -> Self {
         Self {
             route: None,
             port: None,
@@ -92,7 +90,8 @@ impl Metrics {
     /// for use with [`trillium-router`](https://docs.trillium.rs/trillium_router/index.html),
     /// ```
     /// use trillium_router::RouterConnExt;
-    /// trillium_opentelemetry::Metrics::new("example").with_route(|conn| conn.route().map(|r| r.to_string()));
+    /// trillium_opentelemetry::Metrics::new(&opentelemetry::global::meter("example"))
+    ///     .with_route(|conn| conn.route().map(|r| r.to_string()));
     /// ```
     pub fn with_route<F>(mut self, route: F) -> Self
     where
