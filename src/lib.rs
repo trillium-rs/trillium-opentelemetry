@@ -13,7 +13,7 @@
 use opentelemetry::{
     global,
     metrics::{Histogram, Meter, Unit},
-    Context, KeyValue,
+    KeyValue,
 };
 use std::{
     fmt::{self, Debug, Formatter},
@@ -187,16 +187,14 @@ impl Handler for Metrics {
                 attributes.push(KeyValue::new("net.host.port", port.to_string()));
             }
 
-            let context = Context::current();
-
-            duration_histogram.record(&context, duration_s, &attributes);
+            duration_histogram.record(duration_s, &attributes);
 
             if let Some(response_len) = response_len {
-                response_size_histogram.record(&context, response_len, &attributes);
+                response_size_histogram.record(response_len, &attributes);
             }
 
             if let Some(request_len) = request_len {
-                request_size_histogram.record(&context, request_len, &attributes);
+                request_size_histogram.record(request_len, &attributes);
             }
         });
 
