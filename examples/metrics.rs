@@ -1,5 +1,6 @@
-use opentelemetry::{global::set_meter_provider, runtime::Tokio};
+use opentelemetry::global::set_meter_provider;
 use opentelemetry_otlp::{new_exporter, new_pipeline};
+use opentelemetry_sdk::runtime::Tokio;
 use trillium_opentelemetry::Metrics;
 use trillium_router::{router, RouterConnExt};
 
@@ -18,7 +19,7 @@ pub async fn main() {
     set_up_collector();
 
     trillium_tokio::run_async((
-        Metrics::new("example-app").with_route(|conn| conn.route().map(|r| r.to_string())),
+        Metrics::new("example-app").with_route(|conn| conn.route().map(|r| r.to_string().into())),
         router().get("/some/:path", "ok"),
     ))
     .await;
