@@ -1,6 +1,6 @@
 # Trillium Opentelemetry!
 
-This crate provides opentelemetry metrics conforming to [semantic conventions for http](https://opentelemetry.io/docs/reference/specification/metrics/semantic_conventions/http-metrics/). Eventually it may also include support for [tracing semantic conventions](https://opentelemetry.io/docs/reference/specification/trace/semantic_conventions/http/).
+This crate provides opentelemetry metrics conforming to [semantic conventions for http][http-metrics]. Eventually it may also include support for [tracing semantic conventions][http-spans].
 
 ## Usage:
 
@@ -13,13 +13,16 @@ async fn main() {
     /// configure your meter provider / exporter here
 
     trillium_tokio::run_async((
-        metrics("example-app").with_route(|conn| conn.route().map(|r| r.to_string())),
+        metrics("example-app").with_route(|conn| conn.route().map(|r| r.to_string().into())),
         router().get("/some/:path", "ok"),
     ))
     .await;
 }
 ```
 
+
+[http-metrics]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/
+[http-spans]: https://opentelemetry.io/docs/specs/semconv/http/http-spans/
 
 <br/><hr/><br/>
 Legal:
