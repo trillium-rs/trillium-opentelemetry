@@ -1,20 +1,21 @@
 # Trillium Opentelemetry!
 
-This crate provides opentelemetry metrics conforming to [semantic conventions for http][http-metrics]. Eventually it may also include support for [tracing semantic conventions][http-spans].
+This crate provides opentelemetry metrics conforming to [semantic conventions for http][http-metrics] and [tracing semantic conventions][http-spans].
 
 ## Usage:
 
 ```rust
-use trillium_opentelemetry::metrics;
-use trillium_router::{router, RouterConnExt};
+use trillium_opentelemetry::global::{instrument, instrument_handler};
+use trillium_router::router;
 
 #[tokio::main]
 async fn main() {
-    /// configure your meter provider / exporter here
+    // configure a global meter provider and tracer provider here
+    // see examples/with_global.rs for a functional example
 
     trillium_tokio::run_async((
-        metrics("example-app").with_route(|conn| conn.route().map(|r| r.to_string().into())),
-        router().get("/some/:path", "ok"),
+        instrument().with_route(|conn| conn.route().map(|r| r.to_string().into())),
+        instrument_handler(router().get("/some/:path", instrument_handler("ok")),
     ))
     .await;
 }
