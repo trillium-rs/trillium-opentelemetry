@@ -254,6 +254,21 @@ where
         }
 
         span.set_attributes(attributes);
+
+        {
+            let context = context.clone();
+            conn.inner_mut().after_send(move |send_status| {
+                let span = context.span();
+                if !send_status.is_success() {
+                    span.set_status(opentelemetry::trace::Status::Error {
+                        description: "http send error".into(),
+                    });
+                    span.set_attribute(KeyValue::new("error.type", "http send error"));
+                }
+                span.end();
+            });
+        }
+
         conn
     }
 }
