@@ -30,16 +30,20 @@ pub use metrics::{metrics, Metrics};
 #[cfg(feature = "trace")]
 pub use trace::{trace, Trace};
 
-#[cfg(all(feature = "trace", feature = "metrics"))]
 /// instrumentation using [`opentelemetry::global`]
 pub mod global {
-    use opentelemetry::metrics::MeterProvider;
 
+    #[cfg(all(feature = "trace", feature = "metrics"))]
     pub use super::instrument::instrument_global as instrument;
+
+    #[cfg(feature = "trace")]
     pub use super::instrument_handler::instrument_handler_global as instrument_handler;
 
+    #[cfg(feature = "metrics")]
     /// configure a meter against the global meter provider
     pub fn metrics() -> super::Metrics {
+        use opentelemetry::metrics::MeterProvider;
+
         opentelemetry::global::meter_provider()
             .versioned_meter(
                 "trillium-opentelemetry",
