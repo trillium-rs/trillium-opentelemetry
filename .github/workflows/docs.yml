@@ -28,6 +28,11 @@ jobs:
         cargo +nightly doc
         --no-deps
         --all
+    - name: Fix permissions
+      run: |
+        chmod -c -R +rX "./target/doc" | while read line; do
+        echo "::warning title=Invalid file permissions automatically fixed::$line"
+        done
     - name: Setup Pages
       uses: actions/configure-pages@v4
     - name: Upload artifact
