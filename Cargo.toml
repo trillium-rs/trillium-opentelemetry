@@ -7,7 +7,7 @@ description = "opentelemetry for trillium.rs"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/trillium-rs/trillium-opentelemetry"
 readme = "README.md"
-keywords = ["trillium", "framework", "async", "opentelemetry", "otel"]
+keywords = ["trillium", "opentelemetry", "otel", "observability"]
 categories = ["web-programming::http-server", "web-programming"]
 
 [features]
