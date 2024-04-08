@@ -18,7 +18,7 @@ trace = ["opentelemetry/trace"]
 [dependencies]
 opentelemetry = { version = "0.22.0", default-features = false }
 trillium = "0.2.11"
-trillium-macros = "0.0.5"
+trillium-macros = "0.0.6"
 
 [dev-dependencies]
 opentelemetry-otlp = { version = "0.15.0", features = ["metrics", "tokio", "trace"] }
