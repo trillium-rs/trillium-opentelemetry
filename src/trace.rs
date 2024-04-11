@@ -21,6 +21,7 @@ pub struct Trace<T> {
     pub(crate) route: Option<Arc<StringExtractionFn>>,
     pub(crate) error_type: Option<Arc<StringExtractionFn>>,
     pub(crate) headers: Vec<HeaderName<'static>>,
+    pub(crate) enable_local_address_and_port: bool,
     tracer: T,
     socket_addr: Option<SocketAddr>,
 }
@@ -58,6 +59,7 @@ impl<T: Tracer> Trace<T> {
         Trace {
             route: None,
             error_type: None,
+            enable_local_address_and_port: false,
             tracer,
             headers: vec![],
             socket_addr: None,
@@ -103,6 +105,14 @@ impl<T: Tracer> Trace<T> {
         self.headers = headers.into_iter().map(Into::into).collect();
         self
     }
+
+    /// Enable population of the local socket address and port in the trace spans.
+    ///
+    /// This populates the `network.local.address` and `network.local.port` attributes.
+    pub fn with_local_address_and_port(mut self) -> Self {
+        self.enable_local_address_and_port = true;
+        self
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -119,7 +129,9 @@ where
     T::Span: Send + Sync + 'static,
 {
     async fn init(&mut self, info: &mut trillium::Info) {
-        self.socket_addr = info.tcp_socket_addr().cloned();
+        if self.enable_local_address_and_port {
+            self.socket_addr = info.tcp_socket_addr().cloned();
+        }
     }
     async fn run(&self, mut conn: Conn) -> Conn {
         let start_time =
