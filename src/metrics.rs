@@ -12,6 +12,8 @@ use std::{
 use trillium::{async_trait, Conn, Handler, KnownHeaderName, Status};
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
+type StringAndPortExtractionFn =
+    dyn Fn(&Conn) -> Option<(Cow<'static, str>, u16)> + Send + Sync + 'static;
 
 /// Trillium handler that instruments http.server.request.duration, http.server.request.body.size,
 /// and http.server.response.body.size as per [semantic conventions for http][http-metrics].
@@ -21,6 +23,7 @@ type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sy
 pub struct Metrics {
     pub(crate) route: Option<Arc<StringExtractionFn>>,
     pub(crate) error_type: Option<Arc<StringExtractionFn>>,
+    pub(crate) server_address_and_port: Option<Arc<StringAndPortExtractionFn>>,
     duration_histogram: Histogram<f64>,
     request_size_histogram: Histogram<u64>,
     response_size_histogram: Histogram<u64>,
@@ -91,6 +94,7 @@ impl From<&Meter> for Metrics {
                 .with_unit(Unit::new("By"))
                 .init(),
             error_type: None,
+            server_address_and_port: None,
         }
     }
 }
@@ -131,6 +135,25 @@ impl Metrics {
         self.error_type = Some(Arc::new(error_type));
         self
     }
+
+    /// Provides a callback for `server.address` and `server.port` attributes to the metrics
+    /// collector.
+    ///
+    /// These should be set based on request headers according to the [OpenTelemetry HTTP semantic
+    /// conventions][semconv-server-address-port].
+    ///
+    /// It is not recommended to enable this when the server is exposed to clients outside of your
+    /// control, as request headers could arbitrarily increase the cardinality of these attributes.
+    ///
+    /// [semconv-server-address-port]:
+    ///     https://opentelemetry.io/docs/specs/semconv/http/http-spans/#setting-serveraddress-and-serverport-attributes
+    pub fn with_server_address_and_port<F>(mut self, server_address_and_port: F) -> Self
+    where
+        F: Fn(&Conn) -> Option<(Cow<'static, str>, u16)> + Send + Sync + 'static,
+    {
+        self.server_address_and_port = Some(Arc::new(server_address_and_port));
+        self
+    }
 }
 
 struct MetricsWasRun;
@@ -149,6 +172,7 @@ impl Handler for Metrics {
         let Metrics {
             route,
             error_type,
+            server_address_and_port,
             duration_histogram,
             request_size_histogram,
             response_size_histogram,
@@ -177,12 +201,7 @@ impl Handler for Metrics {
             .as_str()
             .strip_prefix("HTTP/")
             .unwrap();
-
-        let address_and_port = conn.inner().host().map(|host| {
-            host.split_once(':')
-                .and_then(|(host, port)| Some((String::from(host), port.parse().ok()?)))
-                .unwrap_or_else(|| (String::from(host), if conn.is_secure() { 443 } else { 80 }))
-        });
+        let server_address_and_port = server_address_and_port.and_then(|f| f(&conn));
 
         let mut attributes = vec![
             KeyValue::new("http.request.method", method),
@@ -200,9 +219,9 @@ impl Handler for Metrics {
             attributes.push(KeyValue::new("http.route", route))
         };
 
-        if let Some((address, port)) = address_and_port {
+        if let Some((address, port)) = server_address_and_port {
             attributes.push(KeyValue::new("server.address", address));
-            attributes.push(KeyValue::new("server.port", port));
+            attributes.push(KeyValue::new("server.port", i64::from(port)));
         }
 
         conn.inner_mut().after_send(move |_| {
