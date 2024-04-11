@@ -40,13 +40,13 @@ pub mod global {
     pub use super::instrument_handler::instrument_handler_global as instrument_handler;
 
     #[cfg(feature = "trace")]
-    ///configure a [`Trace`] against the global tracer provider
+    ///configure a [`Trace`](crate::trace::Trace) against the global tracer provider
     pub fn trace() -> super::Trace<opentelemetry::global::BoxedTracer> {
         super::Trace::new(opentelemetry::global::tracer("trillium-opentelemetry"))
     }
 
     #[cfg(feature = "metrics")]
-    /// configure a [`Metrics`] against the global meter provider
+    /// configure a [`Metrics`](crate::metrics::Metrics) against the global meter provider
     pub fn metrics() -> super::Metrics {
         use opentelemetry::metrics::MeterProvider;
 
