@@ -54,7 +54,7 @@ pub mod global {
             .versioned_meter(
                 "trillium-opentelemetry",
                 Some(env!("CARGO_PKG_VERSION")),
-                Some("https://opentelemetry.io/docs/specs/semconv/"),
+                Some("https://opentelemetry.io/schemas/1.22.0"),
                 None,
             )
             .into()
