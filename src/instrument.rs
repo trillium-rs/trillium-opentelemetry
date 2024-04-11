@@ -66,6 +66,26 @@ impl Instrument {
         self
     }
 
+    /// Provides a callback for `server.address` and `server.port` attributes to be used in metrics
+    /// attributes. This has no effect on tracing span attributes, where `server.address` and
+    /// `server.port` are always enabled.
+    ///
+    /// These should be set based on request headers according to the [OpenTelemetry HTTP semantic
+    /// conventions][semconv-server-address-port].
+    ///
+    /// It is not recommended to enable this when the server is exposed to clients outside of your
+    /// control, as request headers could arbitrarily increase the cardinality of these attributes.
+    ///
+    /// [semconv-server-address-port]:
+    ///     https://opentelemetry.io/docs/specs/semconv/http/http-spans/#setting-serveraddress-and-serverport-attributes
+    pub fn with_metrics_server_address_and_port<F>(mut self, server_address_and_port: F) -> Self
+    where
+        F: Fn(&Conn) -> Option<(Cow<'static, str>, u16)> + Send + Sync + 'static,
+    {
+        self.0 .1.server_address_and_port = Some(Arc::new(server_address_and_port));
+        self
+    }
+
     /// Specify a list of request headers to include in the trace spans
     pub fn with_headers(
         mut self,
