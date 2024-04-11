@@ -84,7 +84,7 @@ pub fn instrument_global() -> Instrument {
         opentelemetry::global::meter_provider().versioned_meter(
             "trillium-opentelemetry",
             Some(env!("CARGO_PKG_VERSION")),
-            Some("https://opentelemetry.io/docs/specs/semconv/"),
+            None::<&'static str>,
             None,
         ),
         opentelemetry::global::tracer("trillium-opentelemetry"),
