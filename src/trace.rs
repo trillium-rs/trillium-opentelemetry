@@ -64,7 +64,7 @@ impl<T: Tracer> Trace<T> {
         }
     }
 
-    /// provides a route specification to the metrics collector.
+    /// provides a route specification to include in the trace spans.
     ///
     /// in order to avoid forcing anyone to use a particular router, this is provided as a
     /// configuration hook.
@@ -83,7 +83,7 @@ impl<T: Tracer> Trace<T> {
         self
     }
 
-    /// Provides an optional low-cardinality error type specification to the metrics collector.
+    /// Provides an optional low-cardinality error type specification to include in the trace spans.
     ///
     /// The implementation of this is application specific, but will often look like checking the
     /// [`Conn::state`] for an error enum and mapping that to a low-cardinality `&'static str`.
