@@ -94,6 +94,14 @@ impl Instrument {
         self.0 .0.headers = headers.into_iter().map(Into::into).collect();
         self
     }
+
+    /// Enable population of the local socket address and port in the trace spans.
+    ///
+    /// This populates the `network.local.address` and `network.local.port` attributes.
+    pub fn with_local_address_and_port(mut self) -> Self {
+        self.0 .0.enable_local_address_and_port = true;
+        self
+    }
 }
 
 /// The primary entrypoint if using [`opentelemetry::global`].
