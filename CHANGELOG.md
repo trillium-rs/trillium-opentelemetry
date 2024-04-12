@@ -6,6 +6,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.6.0...v0.7.0) - 2024-04-12
+
+### Added
+- [**breaking**] Make trace attributes for local socket opt-in
+- [**breaking**] Make server.address/server.port opt-in for metrics
+
+### Fixed
+- set schema version correctly
+- Fix documentation links
+- Fix trace doc comments
+
+### Other
+- *(deps)* Update trillium-router requirement from 0.3.5 to 0.4.1
+- *(deps)* Update trillium-macros requirement from 0.0.5 to 0.0.6
+- *(deps)* Update trillium-tokio requirement from 0.3.2 to 0.4.0
+- *(actions)* Bump actions/configure-pages from 4 to 5
+
 ## [0.6.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.5.3...v0.6.0) - 2024-02-26
 
 ### Added
