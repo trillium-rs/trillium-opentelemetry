@@ -1,6 +1,6 @@
 use opentelemetry::{
     global,
-    metrics::{Histogram, Meter, Unit},
+    metrics::{Histogram, Meter},
     KeyValue,
 };
 use std::{
@@ -79,19 +79,19 @@ impl From<&Meter> for Metrics {
             duration_histogram: meter
                 .f64_histogram("http.server.request.duration")
                 .with_description("Measures the duration of inbound HTTP requests.")
-                .with_unit(Unit::new("s"))
+                .with_unit("s")
                 .init(),
 
             request_size_histogram: meter
                 .u64_histogram("http.server.request.body.size")
                 .with_description("Measures the size of HTTP request messages (compressed).")
-                .with_unit(Unit::new("By"))
+                .with_unit("By")
                 .init(),
 
             response_size_histogram: meter
                 .u64_histogram("http.server.response.body.size")
                 .with_description("Measures the size of HTTP response messages (compressed).")
-                .with_unit(Unit::new("By"))
+                .with_unit("By")
                 .init(),
             error_type: None,
             server_address_and_port: None,
