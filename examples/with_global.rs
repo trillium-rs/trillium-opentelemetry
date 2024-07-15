@@ -3,7 +3,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::{new_exporter, new_pipeline};
-use opentelemetry_sdk::{runtime::Tokio, trace::config, Resource};
+use opentelemetry_sdk::{runtime::Tokio, trace::Config, Resource};
 use trillium::{KnownHeaderName, Status};
 use trillium_opentelemetry::global::{instrument, instrument_handler};
 use trillium_router::{router, RouterConnExt};
@@ -22,14 +22,14 @@ pub async fn main() {
     set_tracer_provider(
         new_pipeline()
             .tracing()
-            .with_trace_config(config().with_resource(Resource::new(vec![KeyValue::new(
-                "service.name",
-                "trillium-opentelemetry/examples/with_global",
-            )])))
+            .with_trace_config(
+                Config::default().with_resource(Resource::new(vec![KeyValue::new(
+                    "service.name",
+                    "trillium-opentelemetry/examples/with_global",
+                )])),
+            )
             .with_exporter(new_exporter().tonic())
             .install_batch(Tokio)
-            .unwrap()
-            .provider()
             .unwrap(),
     );
 
