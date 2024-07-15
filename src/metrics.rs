@@ -3,6 +3,7 @@ use opentelemetry::{
     metrics::{Histogram, Meter},
     KeyValue,
 };
+use opentelemetry_semantic_conventions as semconv;
 use std::{
     borrow::Cow,
     fmt::{self, Debug, Formatter},
@@ -77,19 +78,19 @@ impl From<&Meter> for Metrics {
         Self {
             route: None,
             duration_histogram: meter
-                .f64_histogram("http.server.request.duration")
+                .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
                 .with_description("Measures the duration of inbound HTTP requests.")
                 .with_unit("s")
                 .init(),
 
             request_size_histogram: meter
-                .u64_histogram("http.server.request.body.size")
+                .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
                 .with_description("Measures the size of HTTP request messages (compressed).")
                 .with_unit("By")
                 .init(),
 
             response_size_histogram: meter
-                .u64_histogram("http.server.response.body.size")
+                .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
                 .with_description("Measures the size of HTTP response messages (compressed).")
                 .with_unit("By")
                 .init(),
@@ -204,11 +205,11 @@ impl Handler for Metrics {
         let server_address_and_port = server_address_and_port.and_then(|f| f(&conn));
 
         let mut attributes = vec![
-            KeyValue::new("http.request.method", method),
-            KeyValue::new("http.response.status_code", status),
-            KeyValue::new("network.protocol.name", "http"),
-            KeyValue::new("url.scheme", scheme),
-            KeyValue::new("network.protocol.version", version),
+            KeyValue::new(semconv::attribute::HTTP_REQUEST_METHOD, method),
+            KeyValue::new(semconv::attribute::HTTP_RESPONSE_STATUS_CODE, status),
+            KeyValue::new(semconv::attribute::NETWORK_PROTOCOL_NAME, "http"),
+            KeyValue::new(semconv::attribute::URL_SCHEME, scheme),
+            KeyValue::new(semconv::attribute::NETWORK_PROTOCOL_VERSION, version),
         ];
 
         if let Some(error_type) = error_type {
@@ -216,12 +217,15 @@ impl Handler for Metrics {
         }
 
         if let Some(route) = route {
-            attributes.push(KeyValue::new("http.route", route))
+            attributes.push(KeyValue::new(semconv::attribute::HTTP_ROUTE, route))
         };
 
         if let Some((address, port)) = server_address_and_port {
-            attributes.push(KeyValue::new("server.address", address));
-            attributes.push(KeyValue::new("server.port", i64::from(port)));
+            attributes.push(KeyValue::new(semconv::attribute::SERVER_ADDRESS, address));
+            attributes.push(KeyValue::new(
+                semconv::attribute::SERVER_PORT,
+                i64::from(port),
+            ));
         }
 
         conn.inner_mut().after_send(move |_| {
