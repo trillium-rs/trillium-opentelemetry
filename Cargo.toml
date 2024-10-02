@@ -22,7 +22,7 @@ opentelemetry-semantic-conventions = "0.16.0"
 trillium-macros = "0.0.6"
 
 [dev-dependencies]
-opentelemetry-otlp = { version = "0.17.0", features = ["metrics", "tokio", "trace"] }
+opentelemetry-otlp = { version = "0.26.0", features = ["metrics", "tokio", "trace"] }
 opentelemetry =  "0.24.0"
 tokio = { version = "1.37.0", features = ["full"] }
 trillium-router = "0.4.1"
