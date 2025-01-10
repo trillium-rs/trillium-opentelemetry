@@ -48,14 +48,14 @@ pub mod global {
     #[cfg(feature = "metrics")]
     /// configure a [`Metrics`](crate::metrics::Metrics) against the global meter provider
     pub fn metrics() -> super::Metrics {
-        use opentelemetry::metrics::MeterProvider;
+        use opentelemetry::InstrumentationScope;
 
         opentelemetry::global::meter_provider()
-            .versioned_meter(
-                "trillium-opentelemetry",
-                Some(env!("CARGO_PKG_VERSION")),
-                Some("https://opentelemetry.io/schemas/1.22.0"),
-                None,
+            .meter_with_scope(
+                InstrumentationScope::builder("trillium-opentelemetry")
+                    .with_version(env!("CARGO_PKG_VERSION"))
+                    .with_schema_url("https://opentelemetry.io/schemas/1.29.0")
+                    .build(),
             )
             .into()
     }
