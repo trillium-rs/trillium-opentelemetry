@@ -81,19 +81,19 @@ impl From<&Meter> for Metrics {
                 .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
                 .with_description("Measures the duration of inbound HTTP requests.")
                 .with_unit("s")
-                .init(),
+                .build(),
 
             request_size_histogram: meter
                 .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
                 .with_description("Measures the size of HTTP request messages (compressed).")
                 .with_unit("By")
-                .init(),
+                .build(),
 
             response_size_histogram: meter
                 .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
                 .with_description("Measures the size of HTTP response messages (compressed).")
                 .with_unit("By")
-                .init(),
+                .build(),
             error_type: None,
             server_address_and_port: None,
         }

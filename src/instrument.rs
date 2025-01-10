@@ -1,7 +1,7 @@
 use crate::{Metrics, Trace};
 use opentelemetry::{
     global::{BoxedTracer, ObjectSafeTracer},
-    metrics::MeterProvider,
+    InstrumentationScope,
 };
 use std::{borrow::Cow, sync::Arc};
 use trillium::{Conn, HeaderName};
@@ -109,11 +109,11 @@ impl Instrument {
 /// constructs a versioned meter and tracer with the name `"trillium-opentelemetry"`.
 pub fn instrument_global() -> Instrument {
     instrument(
-        opentelemetry::global::meter_provider().versioned_meter(
-            "trillium-opentelemetry",
-            Some(env!("CARGO_PKG_VERSION")),
-            Some("https://opentelemetry.io/schemas/1.22.0"),
-            None,
+        opentelemetry::global::meter_provider().meter_with_scope(
+            InstrumentationScope::builder("trillium-opentelemetry")
+                .with_version(env!("CARGO_PKG_VERSION"))
+                .with_schema_url("https://opentelemetry.io/schemas/1.29.0")
+                .build(),
         ),
         opentelemetry::global::tracer("trillium-opentelemetry"),
     )
