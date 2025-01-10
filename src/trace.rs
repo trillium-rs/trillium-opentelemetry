@@ -243,7 +243,7 @@ where
                 }
             });
 
-        if conn.status().map_or(false, |s| s.is_server_error()) {
+        if conn.status().is_some_and(|s| s.is_server_error()) {
             span.set_status(opentelemetry::trace::Status::Error {
                 description: "".into(), // see error.type
             });
