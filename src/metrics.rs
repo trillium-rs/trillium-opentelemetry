@@ -154,6 +154,9 @@ pub struct MetricsBuilder {
     route: Option<Arc<StringExtractionFn>>,
     error_type: Option<Arc<StringExtractionFn>>,
     server_address_and_port: Option<Arc<StringAndPortExtractionFn>>,
+    duration_histogram_boundaries: Option<Vec<f64>>,
+    request_size_histogram_boundaries: Option<Vec<f64>>,
+    response_size_histogram_boundaries: Option<Vec<f64>>,
 }
 
 impl Debug for MetricsBuilder {
@@ -181,6 +184,18 @@ impl Debug for MetricsBuilder {
                     _ => "None",
                 },
             )
+            .field(
+                "duration_histogram_boundaries",
+                &self.duration_histogram_boundaries,
+            )
+            .field(
+                "request_size_histogram_boundaries",
+                &self.request_size_histogram_boundaries,
+            )
+            .field(
+                "response_size_histogram_boundaries",
+                &self.response_size_histogram_boundaries,
+            )
             .finish()
     }
 }
@@ -198,6 +213,9 @@ impl From<Meter> for MetricsBuilder {
             route: None,
             error_type: None,
             server_address_and_port: None,
+            duration_histogram_boundaries: None,
+            request_size_histogram_boundaries: None,
+            response_size_histogram_boundaries: None,
         }
     }
 }
@@ -253,6 +271,39 @@ impl MetricsBuilder {
         self
     }
 
+    /// Sets histogram boundaries for request durations (in seconds).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.request.duration`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverrequestduration
+    pub fn with_duration_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.duration_histogram_boundaries = Some(boundaries);
+        self
+    }
+
+    /// Sets histogram boundaries for request sizes (in bytes).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.request.body.size`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverrequestbodysize
+    pub fn with_request_size_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.request_size_histogram_boundaries = Some(boundaries);
+        self
+    }
+
+    /// Sets histogram boundaries for response sizes (in bytes).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.response.body.size`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverresponsebodysize
+    pub fn with_response_size_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.response_size_histogram_boundaries = Some(boundaries);
+        self
+    }
+
     /// Constructs a new [`Metrics`] from the configuration.
     pub fn build(self) -> Metrics {
         let MetricsBuilder {
@@ -260,25 +311,39 @@ impl MetricsBuilder {
             route,
             error_type,
             server_address_and_port,
+            duration_histogram_boundaries,
+            request_size_histogram_boundaries,
+            response_size_histogram_boundaries,
         } = self;
 
-        let duration_histogram = meter
+        let mut duration_histogram_builder = meter
             .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
             .with_description("Measures the duration of inbound HTTP requests.")
-            .with_unit("s")
-            .build();
+            .with_unit("s");
+        if let Some(boundaries) = duration_histogram_boundaries {
+            duration_histogram_builder = duration_histogram_builder.with_boundaries(boundaries);
+        }
+        let duration_histogram = duration_histogram_builder.build();
 
-        let request_size_histogram = meter
+        let mut request_size_histogram_builder = meter
             .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
             .with_description("Measures the size of HTTP request messages (compressed).")
-            .with_unit("By")
-            .build();
+            .with_unit("By");
+        if let Some(boundaries) = request_size_histogram_boundaries {
+            request_size_histogram_builder =
+                request_size_histogram_builder.with_boundaries(boundaries);
+        }
+        let request_size_histogram = request_size_histogram_builder.build();
 
-        let response_size_histogram = meter
+        let mut response_size_histogram_builder = meter
             .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
             .with_description("Measures the size of HTTP response messages (compressed).")
-            .with_unit("By")
-            .build();
+            .with_unit("By");
+        if let Some(boundaries) = response_size_histogram_boundaries {
+            response_size_histogram_builder =
+                response_size_histogram_builder.with_boundaries(boundaries);
+        }
+        let response_size_histogram = response_size_histogram_builder.build();
 
         Metrics {
             route,
