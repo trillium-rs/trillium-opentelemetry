@@ -26,7 +26,7 @@ pub use instrument::{instrument, Instrument};
 #[cfg(feature = "trace")]
 pub use instrument_handler::{instrument_handler, InstrumentHandler};
 #[cfg(feature = "metrics")]
-pub use metrics::{metrics, Metrics};
+pub use metrics::{metrics, Metrics, MetricsBuilder};
 #[cfg(feature = "trace")]
 pub use trace::{trace, Trace};
 

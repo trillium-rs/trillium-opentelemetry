@@ -47,6 +47,13 @@ impl Debug for Metrics {
                     _ => "None",
                 },
             )
+            .field(
+                "server_address_and_port",
+                &match self.server_address_and_port {
+                    Some(_) => "Some(..)",
+                    _ => "None",
+                },
+            )
             .field("duration_histogram", &self.duration_histogram)
             .field("request_size_histogram", &self.request_size_histogram)
             .field("response_size_histogram", &self.response_size_histogram)
@@ -75,34 +82,18 @@ impl From<Meter> for Metrics {
 
 impl From<&Meter> for Metrics {
     fn from(meter: &Meter) -> Self {
-        Self {
-            route: None,
-            duration_histogram: meter
-                .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
-                .with_description("Measures the duration of inbound HTTP requests.")
-                .with_unit("s")
-                .build(),
-
-            request_size_histogram: meter
-                .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
-                .with_description("Measures the size of HTTP request messages (compressed).")
-                .with_unit("By")
-                .build(),
-
-            response_size_histogram: meter
-                .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
-                .with_description("Measures the size of HTTP response messages (compressed).")
-                .with_unit("By")
-                .build(),
-            error_type: None,
-            server_address_and_port: None,
-        }
+        Self::builder(meter.clone()).build()
     }
 }
 
 impl Metrics {
     /// Constructs a new [`Metrics`] handler from a `&'static str`, [`&Meter`][Meter] or [`Meter`]
     pub fn new(meter: impl Into<Metrics>) -> Self {
+        meter.into()
+    }
+
+    /// Creates a builder for [`Metrics`] from a `&'static str' or [`Meter`]
+    pub fn builder(meter: impl Into<MetricsBuilder>) -> MetricsBuilder {
         meter.into()
     }
 
@@ -154,6 +145,149 @@ impl Metrics {
     {
         self.server_address_and_port = Some(Arc::new(server_address_and_port));
         self
+    }
+}
+
+/// Configuration for [`Metrics`]
+pub struct MetricsBuilder {
+    meter: Meter,
+    route: Option<Arc<StringExtractionFn>>,
+    error_type: Option<Arc<StringExtractionFn>>,
+    server_address_and_port: Option<Arc<StringAndPortExtractionFn>>,
+}
+
+impl Debug for MetricsBuilder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MetricsBuilder")
+            .field("meter", &self.meter)
+            .field(
+                "route",
+                &match self.route {
+                    Some(_) => "Some(..)",
+                    _ => "None",
+                },
+            )
+            .field(
+                "error_type",
+                &match self.error_type {
+                    Some(_) => "Some(..)",
+                    _ => "None",
+                },
+            )
+            .field(
+                "server_address_and_port",
+                &match self.server_address_and_port {
+                    Some(_) => "Some(..)",
+                    _ => "None",
+                },
+            )
+            .finish()
+    }
+}
+
+impl From<&'static str> for MetricsBuilder {
+    fn from(name: &'static str) -> Self {
+        global::meter(name).into()
+    }
+}
+
+impl From<Meter> for MetricsBuilder {
+    fn from(meter: Meter) -> Self {
+        Self {
+            meter,
+            route: None,
+            error_type: None,
+            server_address_and_port: None,
+        }
+    }
+}
+
+impl MetricsBuilder {
+    /// provides a route specification to the metrics collector.
+    ///
+    /// in order to avoid forcing anyone to use a particular router, this is provided as a
+    /// configuration hook.
+    ///
+    /// for use with [`trillium-router`](https://docs.trillium.rs/trillium_router/index.html),
+    /// ```
+    /// use trillium_router::RouterConnExt;
+    /// trillium_opentelemetry::Metrics::new(&opentelemetry::global::meter("example"))
+    ///     .with_route(|conn| conn.route().map(|r| r.to_string().into()));
+    /// ```
+    pub fn with_route<F>(mut self, route: F) -> Self
+    where
+        F: Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static,
+    {
+        self.route = Some(Arc::new(route));
+        self
+    }
+
+    /// Provides an optional low-cardinality error type specification to the metrics collector.
+    ///
+    /// The implementation of this is application specific, but will often look like checking the
+    /// [`Conn::state`] for an error enum and mapping that to a low-cardinality `&'static str`.
+    pub fn with_error_type<F>(mut self, error_type: F) -> Self
+    where
+        F: Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static,
+    {
+        self.error_type = Some(Arc::new(error_type));
+        self
+    }
+
+    /// Provides a callback for `server.address` and `server.port` attributes to the metrics
+    /// collector.
+    ///
+    /// These should be set based on request headers according to the [OpenTelemetry HTTP semantic
+    /// conventions][semconv-server-address-port].
+    ///
+    /// It is not recommended to enable this when the server is exposed to clients outside of your
+    /// control, as request headers could arbitrarily increase the cardinality of these attributes.
+    ///
+    /// [semconv-server-address-port]:
+    ///     https://opentelemetry.io/docs/specs/semconv/http/http-spans/#setting-serveraddress-and-serverport-attributes
+    pub fn with_server_address_and_port<F>(mut self, server_address_and_port: F) -> Self
+    where
+        F: Fn(&Conn) -> Option<(Cow<'static, str>, u16)> + Send + Sync + 'static,
+    {
+        self.server_address_and_port = Some(Arc::new(server_address_and_port));
+        self
+    }
+
+    /// Constructs a new [`Metrics`] from the configuration.
+    pub fn build(self) -> Metrics {
+        let MetricsBuilder {
+            meter,
+            route,
+            error_type,
+            server_address_and_port,
+        } = self;
+
+        let duration_histogram = meter
+            .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
+            .with_description("Measures the duration of inbound HTTP requests.")
+            .with_unit("s")
+            .build();
+
+        let request_size_histogram = meter
+            .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
+            .with_description("Measures the size of HTTP request messages (compressed).")
+            .with_unit("By")
+            .build();
+
+        let response_size_histogram = meter
+            .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
+            .with_description("Measures the size of HTTP response messages (compressed).")
+            .with_unit("By")
+            .build();
+
+        Metrics {
+            route,
+            error_type,
+            server_address_and_port,
+            duration_histogram,
+            request_size_histogram,
+            response_size_histogram,
+        }
     }
 }
 
