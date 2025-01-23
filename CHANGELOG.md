@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.9.0...v0.10.0) - 2025-01-23
+
+### Added
+
+- [**breaking**] Add the ability to customize histogram boundaries
+
+### Fixed
+
+- fix clippy lint
+
+### Other
+
+- *(deps)* Bump Swatinem/rust-cache from 2.7.3 to 2.7.5
+- [**breaking**] upgrade opentelemetry dependencies
+
 ## [0.9.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.8.0...v0.9.0) - 2024-07-15
 
 ### Fixed
