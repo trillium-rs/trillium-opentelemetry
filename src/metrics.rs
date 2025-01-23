@@ -10,7 +10,7 @@ use std::{
     sync::Arc,
     time::Instant,
 };
-use trillium::{async_trait, Conn, Handler, KnownHeaderName, Status};
+use trillium::{async_trait, log, Conn, Handler, Info, KnownHeaderName, Status};
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
 type StringAndPortExtractionFn =
@@ -20,14 +20,181 @@ type StringAndPortExtractionFn =
 /// and http.server.response.body.size as per [semantic conventions for http][http-metrics].
 ///
 /// [http-metrics]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/
-#[derive(Clone)]
 pub struct Metrics {
     pub(crate) route: Option<Arc<StringExtractionFn>>,
     pub(crate) error_type: Option<Arc<StringExtractionFn>>,
     pub(crate) server_address_and_port: Option<Arc<StringAndPortExtractionFn>>,
-    duration_histogram: Histogram<f64>,
-    request_size_histogram: Histogram<u64>,
-    response_size_histogram: Histogram<u64>,
+    pub(crate) histograms: Histograms,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum Histograms {
+    Uninitialized {
+        meter: Meter,
+        duration_histogram_boundaries: Option<Vec<f64>>,
+        request_size_histogram_boundaries: Option<Vec<f64>>,
+        response_size_histogram_boundaries: Option<Vec<f64>>,
+    },
+    Initialized {
+        duration_histogram: Histogram<f64>,
+        request_size_histogram: Histogram<u64>,
+        response_size_histogram: Histogram<u64>,
+    },
+}
+
+impl Histograms {
+    fn init(&mut self) {
+        match self {
+            Self::Uninitialized {
+                meter,
+                duration_histogram_boundaries,
+                request_size_histogram_boundaries,
+                response_size_histogram_boundaries,
+            } => {
+                let mut duration_histogram_builder = meter
+                    .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
+                    .with_description("Measures the duration of inbound HTTP requests.")
+                    .with_unit("s");
+                duration_histogram_builder.boundaries = duration_histogram_boundaries.take();
+
+                let mut request_size_histogram_builder = meter
+                    .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
+                    .with_description("Measures the size of HTTP request messages (compressed).")
+                    .with_unit("By");
+                request_size_histogram_builder.boundaries =
+                    request_size_histogram_boundaries.take();
+
+                let mut response_size_histogram_builder = meter
+                    .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
+                    .with_description("Measures the size of HTTP response messages (compressed).")
+                    .with_unit("By");
+                response_size_histogram_builder.boundaries =
+                    response_size_histogram_boundaries.take();
+
+                *self = Self::Initialized {
+                    duration_histogram: duration_histogram_builder.build(),
+                    request_size_histogram: request_size_histogram_builder.build(),
+                    response_size_histogram: response_size_histogram_builder.build(),
+                }
+            }
+
+            Self::Initialized { .. } => {
+                log::warn!("Attempted to initialize the Metrics handler twice");
+            }
+        }
+    }
+
+    fn set_request_size_boundaries(&mut self, boundaries: Vec<f64>) {
+        match self {
+            Self::Uninitialized {
+                request_size_histogram_boundaries,
+                ..
+            } => {
+                *request_size_histogram_boundaries = Some(boundaries);
+            }
+
+            Self::Initialized { .. } => {
+                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+            }
+        }
+    }
+
+    fn set_response_size_boundaries(&mut self, boundaries: Vec<f64>) {
+        match self {
+            Self::Uninitialized {
+                response_size_histogram_boundaries,
+                ..
+            } => {
+                *response_size_histogram_boundaries = Some(boundaries);
+            }
+
+            Self::Initialized { .. } => {
+                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+            }
+        }
+    }
+
+    fn set_duration_boundaries(&mut self, boundaries: Vec<f64>) {
+        match self {
+            Self::Uninitialized {
+                duration_histogram_boundaries,
+                ..
+            } => {
+                *duration_histogram_boundaries = Some(boundaries);
+            }
+            Self::Initialized { .. } => {
+                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+            }
+        }
+    }
+
+    fn record_duration(&self, duration_s: f64, attributes: &[KeyValue]) {
+        match self {
+            Self::Initialized {
+                duration_histogram, ..
+            } => {
+                duration_histogram.record(duration_s, attributes);
+            }
+            Self::Uninitialized { .. } => {
+                log::error!("Attempted to record a duration on an uninitialized Metrics handler");
+            }
+        }
+    }
+    fn record_response_len(&self, response_len: u64, attributes: &[KeyValue]) {
+        match self {
+            Self::Initialized {
+                response_size_histogram,
+                ..
+            } => {
+                response_size_histogram.record(response_len, attributes);
+            }
+
+            Self::Uninitialized { .. } => {
+                log::error!(
+                    "Attempted to record a response length on an uninitialized Metrics handler"
+                );
+            }
+        }
+    }
+
+    fn record_request_len(&self, request_len: u64, attributes: &[KeyValue]) {
+        match self {
+            Self::Initialized {
+                request_size_histogram,
+                ..
+            } => {
+                request_size_histogram.record(request_len, attributes);
+            }
+
+            Self::Uninitialized { .. } => {
+                log::error!(
+                    "Attempted to record a request length on an uninitialized Metrics handler"
+                );
+            }
+        }
+    }
+}
+
+impl From<Histograms> for Metrics {
+    fn from(value: Histograms) -> Self {
+        Metrics {
+            route: None,
+            error_type: None,
+            server_address_and_port: None,
+            histograms: value,
+        }
+    }
+}
+
+impl From<Meter> for Histograms {
+    fn from(meter: Meter) -> Self {
+        Histograms::Uninitialized {
+            meter,
+            duration_histogram_boundaries: None,
+            request_size_histogram_boundaries: None,
+            response_size_histogram_boundaries: None,
+        }
+    }
 }
 
 impl Debug for Metrics {
@@ -47,9 +214,7 @@ impl Debug for Metrics {
                     _ => "None",
                 },
             )
-            .field("duration_histogram", &self.duration_histogram)
-            .field("request_size_histogram", &self.request_size_histogram)
-            .field("response_size_histogram", &self.response_size_histogram)
+            .field("histograms", &self.histograms)
             .finish()
     }
 }
@@ -69,34 +234,13 @@ impl From<&'static str> for Metrics {
 
 impl From<Meter> for Metrics {
     fn from(value: Meter) -> Self {
-        (&value).into()
+        Histograms::from(value).into()
     }
 }
 
 impl From<&Meter> for Metrics {
     fn from(meter: &Meter) -> Self {
-        Self {
-            route: None,
-            duration_histogram: meter
-                .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
-                .with_description("Measures the duration of inbound HTTP requests.")
-                .with_unit("s")
-                .build(),
-
-            request_size_histogram: meter
-                .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
-                .with_description("Measures the size of HTTP request messages (compressed).")
-                .with_unit("By")
-                .build(),
-
-            response_size_histogram: meter
-                .u64_histogram(semconv::metric::HTTP_SERVER_RESPONSE_BODY_SIZE)
-                .with_description("Measures the size of HTTP response messages (compressed).")
-                .with_unit("By")
-                .build(),
-            error_type: None,
-            server_address_and_port: None,
-        }
+        meter.clone().into()
     }
 }
 
@@ -155,6 +299,39 @@ impl Metrics {
         self.server_address_and_port = Some(Arc::new(server_address_and_port));
         self
     }
+
+    /// Sets histogram boundaries for request durations (in seconds).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.request.duration`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverrequestduration
+    pub fn with_duration_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.histograms.set_duration_boundaries(boundaries);
+        self
+    }
+
+    /// Sets histogram boundaries for request sizes (in bytes).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.request.body.size`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverrequestbodysize
+    pub fn with_request_size_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.histograms.set_request_size_boundaries(boundaries);
+        self
+    }
+
+    /// Sets histogram boundaries for response sizes (in bytes).
+    ///
+    /// This sets the histogram bucket boundaries for the [`http.server.response.body.size`][semconv]
+    /// metric.
+    ///
+    /// [semconv]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverresponsebodysize
+    pub fn with_response_size_histogram_boundaries(mut self, boundaries: Vec<f64>) -> Self {
+        self.histograms.set_response_size_boundaries(boundaries);
+        self
+    }
 }
 
 struct MetricsWasRun;
@@ -163,6 +340,10 @@ struct MetricsWasRun;
 impl Handler for Metrics {
     async fn run(&self, conn: Conn) -> Conn {
         conn.with_state(MetricsWasRun)
+    }
+
+    async fn init(&mut self, _: &mut Info) {
+        self.histograms.init();
     }
 
     async fn before_send(&self, mut conn: Conn) -> Conn {
@@ -174,11 +355,9 @@ impl Handler for Metrics {
             route,
             error_type,
             server_address_and_port,
-            duration_histogram,
-            request_size_histogram,
-            response_size_histogram,
-        } = self.clone();
-        let error_type = error_type.and_then(|et| et(&conn)).or_else(|| {
+            histograms,
+        } = self;
+        let error_type = error_type.as_ref().and_then(|et| et(&conn)).or_else(|| {
             let status = conn.status().unwrap_or(Status::NotFound);
             if status.is_server_error() {
                 Some((status as u16).to_string().into())
@@ -187,7 +366,7 @@ impl Handler for Metrics {
             }
         });
         let status: i64 = (conn.status().unwrap_or(Status::NotFound) as u16).into();
-        let route = route.and_then(|r| r(&conn));
+        let route = route.as_ref().and_then(|r| r(&conn));
         let start_time = conn.inner().start_time();
         let method = conn.method().as_str();
         let request_len = conn
@@ -202,7 +381,7 @@ impl Handler for Metrics {
             .as_str()
             .strip_prefix("HTTP/")
             .unwrap();
-        let server_address_and_port = server_address_and_port.and_then(|f| f(&conn));
+        let server_address_and_port = server_address_and_port.as_ref().and_then(|f| f(&conn));
 
         let mut attributes = vec![
             KeyValue::new(semconv::attribute::HTTP_REQUEST_METHOD, method),
@@ -228,17 +407,18 @@ impl Handler for Metrics {
             ));
         }
 
+        let histograms = histograms.clone();
         conn.inner_mut().after_send(move |_| {
             let duration_s = (Instant::now() - start_time).as_secs_f64();
 
-            duration_histogram.record(duration_s, &attributes);
+            histograms.record_duration(duration_s, &attributes);
 
             if let Some(response_len) = response_len {
-                response_size_histogram.record(response_len, &attributes);
+                histograms.record_response_len(response_len, &attributes);
             }
 
             if let Some(request_len) = request_len {
-                request_size_histogram.record(request_len, &attributes);
+                histograms.record_request_len(request_len, &attributes);
             }
         });
 
