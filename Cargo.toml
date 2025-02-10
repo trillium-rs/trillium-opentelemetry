@@ -17,16 +17,16 @@ trace = ["opentelemetry/trace"]
 
 [dependencies]
 trillium = "0.2.11"
-opentelemetry = { version = "0.27.1", default-features = false }
-opentelemetry-semantic-conventions = { version = "0.27.0", features = ["semconv_experimental"] }
+opentelemetry = { version = "0.28.0", default-features = false }
+opentelemetry-semantic-conventions = { version = "0.28.0", features = ["semconv_experimental"] }
 trillium-macros = "0.0.6"
 
 [dev-dependencies]
-opentelemetry-otlp = { version = "0.27.0", features = ["metrics", "tokio", "trace"] }
-opentelemetry = "0.27.1"
+opentelemetry-otlp = { version = "0.28.0", features = ["metrics", "tokio", "trace"] }
+opentelemetry = "0.28.0"
 tokio = { version = "1.37.0", features = ["full"] }
 trillium-router = "0.4.1"
 trillium-tokio = "0.4.0"
 trillium-opentelemetry = { path = ".", features = ["metrics", "trace"] }
-opentelemetry_sdk = { version = "0.27.1", features = ["rt-tokio"] }
+opentelemetry_sdk = "0.28.0"
 env_logger = "0.11.3"
