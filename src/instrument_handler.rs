@@ -1,4 +1,4 @@
-use crate::trace::TraceContext;
+use crate::{instrumentation_scope, trace::TraceContext};
 use opentelemetry::{
     global::BoxedTracer,
     trace::{FutureExt, TraceContextExt, Tracer},
@@ -139,6 +139,6 @@ where
 {
     InstrumentHandler::new(
         handler,
-        opentelemetry::global::tracer("trillium-opentelemetry"),
+        opentelemetry::global::tracer_with_scope(instrumentation_scope()),
     )
 }
