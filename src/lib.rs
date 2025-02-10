@@ -29,6 +29,8 @@ pub use instrument_handler::{instrument_handler, InstrumentHandler};
 pub use metrics::{metrics, Metrics};
 #[cfg(any(feature = "trace", feature = "metrics"))]
 use opentelemetry::InstrumentationScope;
+#[cfg(any(feature = "trace", feature = "metrics"))]
+use opentelemetry_semantic_conventions::SCHEMA_URL;
 #[cfg(feature = "trace")]
 pub use trace::{trace, Trace};
 
@@ -64,6 +66,6 @@ pub mod global {
 fn instrumentation_scope() -> InstrumentationScope {
     InstrumentationScope::builder("trillium-opentelemetry")
         .with_version(env!("CARGO_PKG_VERSION"))
-        .with_schema_url("https://opentelemetry.io/schemas/1.29.0")
+        .with_schema_url(SCHEMA_URL)
         .build()
 }
