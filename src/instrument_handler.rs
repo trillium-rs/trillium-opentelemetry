@@ -1,8 +1,8 @@
 use crate::{instrumentation_scope, trace::TraceContext};
 use opentelemetry::{
+    Context,
     global::BoxedTracer,
     trace::{FutureExt, TraceContextExt, Tracer},
-    Context,
 };
 use trillium::{Conn, Handler, Info, Upgrade};
 
