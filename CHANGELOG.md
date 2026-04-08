@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.10.0...v0.11.0) - 2026-04-08
+
+### Other
+
+- update edition to 2024
+- *(deps)* [**breaking**] upgrade trillium to 1.0.0-rc.0 as well as all other deps
+- *(deps)* Bump Swatinem/rust-cache from 2.7.7 to 2.7.8
+- update schema URL
+- use same instrumentation scope everywhere
+- [**breaking**] upgrade opentelemetry dependencies
+- *(deps)* Bump Swatinem/rust-cache from 2.7.5 to 2.7.7
+
 ## [0.10.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.9.0...v0.10.0) - 2025-01-23
 
 ### Added
