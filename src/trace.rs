@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
     time::{Instant, SystemTime},
 };
-use trillium::{async_trait, Conn, Handler, HeaderName, KnownHeaderName, Status};
+use trillium::{Conn, Handler, HeaderName, KnownHeaderName, Status, Transport};
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
 
@@ -122,7 +122,6 @@ pub(crate) struct TraceContext {
 
 struct RouteWasAvailable;
 
-#[async_trait]
 impl<T> Handler for Trace<T>
 where
     T: Tracer + Send + Sync + 'static,
@@ -134,24 +133,24 @@ where
         }
     }
     async fn run(&self, mut conn: Conn) -> Conn {
-        let start_time =
-            Some(SystemTime::now() - conn.inner().start_time().duration_since(Instant::now()));
+        let start_time = Some(SystemTime::now() - conn.start_time().duration_since(Instant::now()));
 
         let scheme = if conn.is_secure() { "https" } else { "http" };
         let method = conn.method().as_str();
 
-        let version = conn
-            .inner()
-            .http_version()
-            .as_str()
-            .strip_prefix("HTTP/")
-            .unwrap();
+        let version = conn.http_version().as_str().strip_prefix("HTTP/").unwrap();
+
+        let path_and_query = conn.path_and_query();
+        let (path, query) = match path_and_query.find('?') {
+            Some(x) => (&path_and_query[0..x], &path_and_query[x + 1..]),
+            None => (path_and_query, ""),
+        };
 
         let mut attributes = vec![
             KeyValue::new("http.request.method", method),
-            KeyValue::new("url.path", conn.inner().path().to_string()),
+            KeyValue::new("url.path", path.to_string()),
             KeyValue::new("url.scheme", scheme),
-            KeyValue::new("url.query", conn.inner().querystring().to_string()),
+            KeyValue::new("url.query", query.to_string()),
             KeyValue::new("network.protocol.name", "http"),
             KeyValue::new("network.protocol.version", version),
         ];
@@ -168,7 +167,7 @@ where
             ));
         }
 
-        if let Some(peer_ip) = conn.inner().peer_ip() {
+        if let Some(peer_ip) = conn.peer_ip() {
             attributes.push(KeyValue::new("client.address", peer_ip.to_string()));
         }
 
@@ -188,7 +187,7 @@ where
             ));
         }
 
-        let address_and_port = conn.inner().host().map(|host| {
+        let address_and_port = conn.host().map(|host| {
             host.split_once(':')
                 .and_then(|(host, port)| Some((String::from(host), port.parse().ok()?)))
                 .unwrap_or_else(|| (String::from(host), if conn.is_secure() { 443 } else { 80 }))
@@ -204,7 +203,7 @@ where
         }
 
         let name = if let Some(route) = self.route.as_ref().and_then(|route| route(&conn)) {
-            conn.set_state(RouteWasAvailable);
+            conn.insert_state(RouteWasAvailable);
             attributes.push(KeyValue::new("http.route", route.clone()));
             format!("{} {route}", conn.method().as_str()).into()
         } else {
@@ -269,7 +268,8 @@ where
 
         {
             let context = context.clone();
-            conn.inner_mut().after_send(move |send_status| {
+            let inner: &mut trillium_http::Conn<Box<dyn Transport>> = conn.as_mut();
+            inner.after_send(move |send_status| {
                 let span = context.span();
                 if !send_status.is_success() {
                     span.set_status(opentelemetry::trace::Status::Error {
