@@ -1,4 +1,4 @@
-use crate::{instrumentation_scope, Metrics, Trace};
+use crate::{Metrics, Trace, instrumentation_scope};
 use opentelemetry::global::{BoxedTracer, ObjectSafeTracer};
 use std::{borrow::Cow, sync::Arc};
 use trillium::{Conn, HeaderName};
@@ -44,8 +44,8 @@ impl Instrument {
         F: Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static,
     {
         let route = Arc::new(route);
-        self.0 .0.route = Some(route.clone());
-        self.0 .1.route = Some(route);
+        self.0.0.route = Some(route.clone());
+        self.0.1.route = Some(route);
         self
     }
 
@@ -58,8 +58,8 @@ impl Instrument {
         F: Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static,
     {
         let error_type = Arc::new(error_type);
-        self.0 .0.error_type = Some(error_type.clone());
-        self.0 .1.error_type = Some(error_type);
+        self.0.0.error_type = Some(error_type.clone());
+        self.0.1.error_type = Some(error_type);
         self
     }
 
@@ -79,7 +79,7 @@ impl Instrument {
     where
         F: Fn(&Conn) -> Option<(Cow<'static, str>, u16)> + Send + Sync + 'static,
     {
-        self.0 .1.server_address_and_port = Some(Arc::new(server_address_and_port));
+        self.0.1.server_address_and_port = Some(Arc::new(server_address_and_port));
         self
     }
 
@@ -88,7 +88,7 @@ impl Instrument {
         mut self,
         headers: impl IntoIterator<Item = impl Into<HeaderName<'static>>>,
     ) -> Self {
-        self.0 .0.headers = headers.into_iter().map(Into::into).collect();
+        self.0.0.headers = headers.into_iter().map(Into::into).collect();
         self
     }
 
@@ -96,7 +96,7 @@ impl Instrument {
     ///
     /// This populates the `network.local.address` and `network.local.port` attributes.
     pub fn with_local_address_and_port(mut self) -> Self {
-        self.0 .0.enable_local_address_and_port = true;
+        self.0.0.enable_local_address_and_port = true;
         self
     }
 }

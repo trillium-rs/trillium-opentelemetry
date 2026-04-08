@@ -22,17 +22,17 @@ mod trace;
 mod instrument_handler;
 
 #[cfg(all(feature = "trace", feature = "metrics"))]
-pub use instrument::{instrument, Instrument};
+pub use instrument::{Instrument, instrument};
 #[cfg(feature = "trace")]
-pub use instrument_handler::{instrument_handler, InstrumentHandler};
+pub use instrument_handler::{InstrumentHandler, instrument_handler};
 #[cfg(feature = "metrics")]
-pub use metrics::{metrics, Metrics};
+pub use metrics::{Metrics, metrics};
 #[cfg(any(feature = "trace", feature = "metrics"))]
 use opentelemetry::InstrumentationScope;
 #[cfg(any(feature = "trace", feature = "metrics"))]
 use opentelemetry_semantic_conventions::SCHEMA_URL;
 #[cfg(feature = "trace")]
-pub use trace::{trace, Trace};
+pub use trace::{Trace, trace};
 
 /// instrumentation using [`opentelemetry::global`]
 pub mod global {

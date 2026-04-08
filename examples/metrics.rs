@@ -2,7 +2,7 @@ use opentelemetry::global::set_meter_provider;
 use opentelemetry_otlp::MetricExporter;
 use opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider};
 use trillium_opentelemetry::Metrics;
-use trillium_router::{router, RouterConnExt};
+use trillium_router::{RouterConnExt, router};
 
 fn set_up_collector() {
     let exporter = MetricExporter::builder().with_http().build().unwrap();

@@ -1,6 +1,6 @@
 use opentelemetry::{
-    trace::{SpanBuilder, SpanKind, TraceContextExt, Tracer},
     Array, Context, KeyValue, Value,
+    trace::{SpanBuilder, SpanKind, TraceContextExt, Tracer},
 };
 use std::{
     borrow::Cow,

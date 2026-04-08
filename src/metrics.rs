@@ -1,7 +1,6 @@
 use opentelemetry::{
-    global,
+    KeyValue, global,
     metrics::{Histogram, Meter},
-    KeyValue,
 };
 use opentelemetry_semantic_conventions as semconv;
 use std::{
@@ -10,7 +9,7 @@ use std::{
     sync::Arc,
     time::Instant,
 };
-use trillium::{log, Conn, Handler, Info, KnownHeaderName, Status, Transport};
+use trillium::{Conn, Handler, Info, KnownHeaderName, Status, Transport, log};
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
 type StringAndPortExtractionFn =
@@ -94,7 +93,9 @@ impl Histograms {
             }
 
             Self::Initialized { .. } => {
-                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+                log::warn!(
+                    "Attempted to set histogram boundaries on a Metrics handler that was already initialized"
+                );
             }
         }
     }
@@ -109,7 +110,9 @@ impl Histograms {
             }
 
             Self::Initialized { .. } => {
-                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+                log::warn!(
+                    "Attempted to set histogram boundaries on a Metrics handler that was already initialized"
+                );
             }
         }
     }
@@ -123,7 +126,9 @@ impl Histograms {
                 *duration_histogram_boundaries = Some(boundaries);
             }
             Self::Initialized { .. } => {
-                log::warn!("Attempted to set histogram boundaries on a Metrics handler that was already initialized");
+                log::warn!(
+                    "Attempted to set histogram boundaries on a Metrics handler that was already initialized"
+                );
             }
         }
     }

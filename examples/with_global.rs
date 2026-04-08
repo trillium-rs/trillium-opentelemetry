@@ -1,16 +1,16 @@
 use opentelemetry::{
-    global::{set_meter_provider, set_tracer_provider},
     KeyValue,
+    global::{set_meter_provider, set_tracer_provider},
 };
 use opentelemetry_otlp::{MetricExporter, SpanExporter};
 use opentelemetry_sdk::{
+    Resource,
     metrics::{PeriodicReader, SdkMeterProvider},
     trace::SdkTracerProvider,
-    Resource,
 };
 use trillium::{KnownHeaderName, Status};
 use trillium_opentelemetry::global::{instrument, instrument_handler};
-use trillium_router::{router, RouterConnExt};
+use trillium_router::{RouterConnExt, router};
 
 #[tokio::main]
 pub async fn main() {
