@@ -4,7 +4,7 @@ use opentelemetry::{
     trace::{FutureExt, TraceContextExt, Tracer},
     Context,
 };
-use trillium::{async_trait, Conn, Handler, Info, Upgrade};
+use trillium::{Conn, Handler, Info, Upgrade};
 
 /// Trillium handler that instruments handlers with spans.
 ///
@@ -16,7 +16,6 @@ pub struct InstrumentHandler<H, T> {
     tracer: T,
 }
 
-#[async_trait]
 impl<H, T> Handler for InstrumentHandler<H, T>
 where
     H: Handler,

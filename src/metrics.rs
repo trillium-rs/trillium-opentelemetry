@@ -10,7 +10,7 @@ use std::{
     sync::Arc,
     time::Instant,
 };
-use trillium::{async_trait, log, Conn, Handler, Info, KnownHeaderName, Status};
+use trillium::{log, Conn, Handler, Info, KnownHeaderName, Status, Transport};
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
 type StringAndPortExtractionFn =
@@ -336,7 +336,6 @@ impl Metrics {
 
 struct MetricsWasRun;
 
-#[async_trait]
 impl Handler for Metrics {
     async fn run(&self, conn: Conn) -> Conn {
         conn.with_state(MetricsWasRun)
@@ -367,7 +366,7 @@ impl Handler for Metrics {
         });
         let status: i64 = (conn.status().unwrap_or(Status::NotFound) as u16).into();
         let route = route.as_ref().and_then(|r| r(&conn));
-        let start_time = conn.inner().start_time();
+        let start_time = conn.start_time();
         let method = conn.method().as_str();
         let request_len = conn
             .request_headers()
@@ -375,12 +374,7 @@ impl Handler for Metrics {
             .and_then(|src| src.parse::<u64>().ok());
         let response_len = conn.response_len();
         let scheme = if conn.is_secure() { "https" } else { "http" };
-        let version = conn
-            .inner()
-            .http_version()
-            .as_str()
-            .strip_prefix("HTTP/")
-            .unwrap();
+        let version = conn.http_version().as_str().strip_prefix("HTTP/").unwrap();
         let server_address_and_port = server_address_and_port.as_ref().and_then(|f| f(&conn));
 
         let mut attributes = vec![
@@ -408,7 +402,8 @@ impl Handler for Metrics {
         }
 
         let histograms = histograms.clone();
-        conn.inner_mut().after_send(move |_| {
+        let inner: &mut trillium_http::Conn<Box<dyn Transport>> = conn.as_mut();
+        inner.after_send(move |_| {
             let duration_s = (Instant::now() - start_time).as_secs_f64();
 
             histograms.record_duration(duration_s, &attributes);
