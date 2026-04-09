@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0-rc.2](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.11.0-rc.1...v0.11.0-rc.2) - 2026-04-09
+
+### Other
+
+- *(deps)* Bump github/codeql-action from 3 to 4
+- *(deps)* Bump Swatinem/rust-cache from 2.7.8 to 2.9.1
+- *(deps)* Bump actions/deploy-pages from 4 to 5
+- *(deps)* Bump taiki-e/cache-cargo-install-action from 2 to 3
+- *(deps)* Bump actions/checkout from 4 to 6
+
 ## [0.11.0-rc.1](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.10.0...v0.11.0-rc.1) - 2026-04-08
 
 ### Other
