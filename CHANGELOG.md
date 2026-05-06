@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.10.0...v0.11.0) - 2026-05-06
+
+### Other
+
+- [**breaking**] update trillium to 1
+- update edition to 2024
+- update schema URL
+- use same instrumentation scope everywhere
+- [**breaking**] upgrade opentelemetry dependencies
+
+
 ## [0.11.0-rc.1](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.10.0...v0.11.0-rc.1) - 2026-04-08
 
 ### Other
