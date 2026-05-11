@@ -11,6 +11,8 @@
 )]
 pub use opentelemetry;
 
+#[cfg(any(feature = "trace", feature = "metrics"))]
+mod conventions;
 #[cfg(all(feature = "trace", feature = "metrics"))]
 mod instrument;
 #[cfg(feature = "metrics")]
