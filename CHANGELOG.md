@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.11.0...v0.12.0) - 2026-05-11
+
+### Fixed
+
+- Omit `network.protocol.name` when the value would be `http`, per the HTTP semantic conventions (it is conditionally required only when the protocol is _not_ `http`)
+- Normalize `http.request.method` to the known HTTP method set, mapping unrecognized methods to `_OTHER` and recording the original value in `http.request.method_original`
+- Redact the values of well-known sensitive query string keys (`AWSAccessKeyId`, `Signature`, `sig`, `X-Goog-Signature`) in the `url.query` span attribute
+- Apply the spec-recommended default bucket boundaries to the `http.server.request.duration` histogram when the user has not configured their own
+
+### Other
+
+- Use `semconv::attribute::*` constants in place of hardcoded attribute name strings throughout
+
 ## [0.11.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.10.0...v0.11.0) - 2026-05-06
 
 ### Other

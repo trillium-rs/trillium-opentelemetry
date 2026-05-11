@@ -1,6 +1,6 @@
 [package]
 name = "trillium-opentelemetry"
-version = "0.11.0"
+version = "0.12.0"
 edition = "2024"
 description = "opentelemetry for trillium.rs"
 license = "MIT OR Apache-2.0"
@@ -16,17 +16,17 @@ trace = ["opentelemetry/trace"]
 
 [dependencies]
 trillium = "1"
-opentelemetry = { version = "0.31.0", default-features = false }
-opentelemetry-semantic-conventions = { version = "0.31.0", features = ["semconv_experimental"] }
+opentelemetry = { version = "0.32.0", default-features = false }
+opentelemetry-semantic-conventions = { version = "0.32.0", features = ["semconv_experimental"] }
 trillium-macros = "0.1.0"
 trillium-http = "1"
 
 [dev-dependencies]
-opentelemetry-otlp = { version = "0.31.1", features = ["metrics", "tokio", "trace"] }
-opentelemetry = "0.31.0"
-tokio = { version = "1.52.2", features = ["full"] }
+opentelemetry-otlp = { version = "0.32.0", features = ["metrics", "tokio", "trace"] }
+opentelemetry = "0.32.0"
+tokio = { version = "1.52.3", features = ["full"] }
 trillium-router = "0.5.0"
 trillium-tokio = "0.6.1"
 trillium-opentelemetry = { path = ".", features = ["metrics", "trace"] }
-opentelemetry_sdk = "0.31.0"
+opentelemetry_sdk = "0.32.0"
 env_logger = "0.11.10"

@@ -1,7 +1,9 @@
+use crate::conventions::{normalize_method, redact_query};
 use opentelemetry::{
     Array, Context, KeyValue, Value,
     trace::{SpanBuilder, SpanKind, TraceContextExt, Tracer},
 };
+use opentelemetry_semantic_conventions as semconv;
 use std::{
     borrow::Cow,
     fmt::{self, Debug, Formatter},
@@ -136,7 +138,7 @@ where
         let start_time = Some(SystemTime::now() - conn.start_time().duration_since(Instant::now()));
 
         let scheme = if conn.is_secure() { "https" } else { "http" };
-        let method = conn.method().as_str();
+        let (method, method_original) = normalize_method(conn.method().as_str());
 
         let version = conn.http_version().as_str().strip_prefix("HTTP/").unwrap();
 
@@ -147,28 +149,43 @@ where
         };
 
         let mut attributes = vec![
-            KeyValue::new("http.request.method", method),
-            KeyValue::new("url.path", path.to_string()),
-            KeyValue::new("url.scheme", scheme),
-            KeyValue::new("url.query", query.to_string()),
-            KeyValue::new("network.protocol.name", "http"),
-            KeyValue::new("network.protocol.version", version),
+            KeyValue::new(semconv::attribute::HTTP_REQUEST_METHOD, method),
+            KeyValue::new(semconv::attribute::URL_PATH, path.to_string()),
+            KeyValue::new(semconv::attribute::URL_SCHEME, scheme),
+            KeyValue::new(semconv::attribute::NETWORK_PROTOCOL_VERSION, version),
         ];
+
+        if !query.is_empty() {
+            attributes.push(KeyValue::new(
+                semconv::attribute::URL_QUERY,
+                redact_query(query).into_owned(),
+            ));
+        }
+
+        if let Some(method_original) = method_original {
+            attributes.push(KeyValue::new(
+                semconv::attribute::HTTP_REQUEST_METHOD_ORIGINAL,
+                method_original,
+            ));
+        }
 
         if let Some(socket_addr) = &self.socket_addr {
             attributes.push(KeyValue::new(
-                "network.local.address",
+                semconv::attribute::NETWORK_LOCAL_ADDRESS,
                 socket_addr.ip().to_string(),
             ));
 
             attributes.push(KeyValue::new(
-                "network.local.port",
+                semconv::attribute::NETWORK_LOCAL_PORT,
                 i64::from(socket_addr.port()),
             ));
         }
 
         if let Some(peer_ip) = conn.peer_ip() {
-            attributes.push(KeyValue::new("client.address", peer_ip.to_string()));
+            attributes.push(KeyValue::new(
+                semconv::attribute::CLIENT_ADDRESS,
+                peer_ip.to_string(),
+            ));
         }
 
         for (header_name, header_values) in self.headers.iter().filter_map(|hn| {
@@ -194,20 +211,23 @@ where
         });
 
         if let Some((address, port)) = address_and_port {
-            attributes.push(KeyValue::new("server.address", address));
-            attributes.push(KeyValue::new("server.port", port));
+            attributes.push(KeyValue::new(semconv::attribute::SERVER_ADDRESS, address));
+            attributes.push(KeyValue::new(semconv::attribute::SERVER_PORT, port));
         }
 
         if let Some(user_agent) = conn.request_headers().get_str(KnownHeaderName::UserAgent) {
-            attributes.push(KeyValue::new("user_agent.original", user_agent.to_string()));
+            attributes.push(KeyValue::new(
+                semconv::attribute::USER_AGENT_ORIGINAL,
+                user_agent.to_string(),
+            ));
         }
 
         let name = if let Some(route) = self.route.as_ref().and_then(|route| route(&conn)) {
             conn.insert_state(RouteWasAvailable);
-            attributes.push(KeyValue::new("http.route", route.clone()));
-            format!("{} {route}", conn.method().as_str()).into()
+            attributes.push(KeyValue::new(semconv::attribute::HTTP_ROUTE, route.clone()));
+            format!("{method} {route}").into()
         } else {
-            conn.method().as_str().into()
+            method.into()
         };
 
         let span = self.tracer.build(SpanBuilder {
@@ -250,18 +270,22 @@ where
 
         let status: i64 = (conn.status().unwrap_or(Status::NotFound) as u16).into();
 
-        let mut attributes = vec![KeyValue::new("http.response.status_code", status)];
+        let mut attributes = vec![KeyValue::new(
+            semconv::attribute::HTTP_RESPONSE_STATUS_CODE,
+            status,
+        )];
 
         if conn.take_state::<RouteWasAvailable>().is_none() {
             let route = self.route.as_ref().and_then(|route| route(&conn));
             if let Some(route) = &route {
-                attributes.push(KeyValue::new("http.route", route.clone()));
-                span.update_name(format!("{} {route}", conn.method().as_str()));
+                let (method, _) = normalize_method(conn.method().as_str());
+                attributes.push(KeyValue::new(semconv::attribute::HTTP_ROUTE, route.clone()));
+                span.update_name(format!("{method} {route}"));
             }
         }
 
         if let Some(error_type) = error_type {
-            attributes.push(KeyValue::new("error.type", error_type));
+            attributes.push(KeyValue::new(semconv::attribute::ERROR_TYPE, error_type));
         }
 
         span.set_attributes(attributes);
@@ -275,7 +299,10 @@ where
                     span.set_status(opentelemetry::trace::Status::Error {
                         description: "http send error".into(),
                     });
-                    span.set_attribute(KeyValue::new("error.type", "http send error"));
+                    span.set_attribute(KeyValue::new(
+                        semconv::attribute::ERROR_TYPE,
+                        "http send error",
+                    ));
                 }
                 span.end();
             });

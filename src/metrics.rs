@@ -1,3 +1,4 @@
+use crate::conventions::normalize_method;
 use opentelemetry::{
     KeyValue, global,
     metrics::{Histogram, Meter},
@@ -10,6 +11,14 @@ use std::{
     time::Instant,
 };
 use trillium::{Conn, Handler, Info, KnownHeaderName, Status, Transport, log};
+
+/// Recommended `http.server.request.duration` bucket boundaries (seconds), per the
+/// [OpenTelemetry HTTP metrics semantic conventions][duration].
+///
+/// [duration]: https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#metric-httpserverrequestduration
+const DEFAULT_DURATION_BOUNDARIES: &[f64] = &[
+    0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0,
+];
 
 type StringExtractionFn = dyn Fn(&Conn) -> Option<Cow<'static, str>> + Send + Sync + 'static;
 type StringAndPortExtractionFn =
@@ -54,7 +63,11 @@ impl Histograms {
                     .f64_histogram(semconv::metric::HTTP_SERVER_REQUEST_DURATION)
                     .with_description("Measures the duration of inbound HTTP requests.")
                     .with_unit("s");
-                duration_histogram_builder.boundaries = duration_histogram_boundaries.take();
+                duration_histogram_builder.boundaries = Some(
+                    duration_histogram_boundaries
+                        .take()
+                        .unwrap_or_else(|| DEFAULT_DURATION_BOUNDARIES.to_vec()),
+                );
 
                 let mut request_size_histogram_builder = meter
                     .u64_histogram(semconv::metric::HTTP_SERVER_REQUEST_BODY_SIZE)
@@ -372,7 +385,7 @@ impl Handler for Metrics {
         let status: i64 = (conn.status().unwrap_or(Status::NotFound) as u16).into();
         let route = route.as_ref().and_then(|r| r(&conn));
         let start_time = conn.start_time();
-        let method = conn.method().as_str();
+        let (method, method_original) = normalize_method(conn.method().as_str());
         let request_len = conn
             .request_headers()
             .get_str(KnownHeaderName::ContentLength)
@@ -385,13 +398,19 @@ impl Handler for Metrics {
         let mut attributes = vec![
             KeyValue::new(semconv::attribute::HTTP_REQUEST_METHOD, method),
             KeyValue::new(semconv::attribute::HTTP_RESPONSE_STATUS_CODE, status),
-            KeyValue::new(semconv::attribute::NETWORK_PROTOCOL_NAME, "http"),
             KeyValue::new(semconv::attribute::URL_SCHEME, scheme),
             KeyValue::new(semconv::attribute::NETWORK_PROTOCOL_VERSION, version),
         ];
 
+        if let Some(method_original) = method_original {
+            attributes.push(KeyValue::new(
+                semconv::attribute::HTTP_REQUEST_METHOD_ORIGINAL,
+                method_original,
+            ));
+        }
+
         if let Some(error_type) = error_type {
-            attributes.push(KeyValue::new("error.type", error_type));
+            attributes.push(KeyValue::new(semconv::attribute::ERROR_TYPE, error_type));
         }
 
         if let Some(route) = route {
