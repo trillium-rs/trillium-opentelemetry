@@ -28,5 +28,5 @@ tokio = { version = "1.52.2", features = ["full"] }
 trillium-router = "0.5.0"
 trillium-tokio = "0.6.1"
 trillium-opentelemetry = { path = ".", features = ["metrics", "trace"] }
-opentelemetry_sdk = "0.31.0"
+opentelemetry_sdk = "0.32.0"
 env_logger = "0.11.10"
