@@ -17,7 +17,7 @@ trace = ["opentelemetry/trace"]
 [dependencies]
 trillium = "1"
 opentelemetry = { version = "0.31.0", default-features = false }
-opentelemetry-semantic-conventions = { version = "0.31.0", features = ["semconv_experimental"] }
+opentelemetry-semantic-conventions = { version = "0.32.0", features = ["semconv_experimental"] }
 trillium-macros = "0.1.0"
 trillium-http = "1"
 
