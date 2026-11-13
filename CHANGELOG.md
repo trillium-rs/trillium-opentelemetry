@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.12.0...v0.12.1) - 2026-11-13
+
+### Fixed
+
+- *(deps)* update rust crate trillium-macros to 0.2.0
+- *(deps)* update opentelemetry-rust monorepo to 0.33.0
+
+### Other
+
+- *(deps)* update swatinem/rust-cache action to v2.9.3
+- *(deps)* Bump github/codeql-action from 4.38.2 to 4.39.3
+- *(deps)* update rust crate trillium-router to 0.6.0
+- *(deps)* update github/codeql-action action to v4.38.2
+- *(deps)* update github/codeql-action action to v4.38.0
+- *(deps)* update github/codeql-action action to v4.37.9
+- *(deps)* update swatinem/rust-cache action to v2.9.2
+- Add renovate.json
+- *(deps)* Bump github/codeql-action from 4.37.3 to 4.37.8
+- *(deps)* Bump github/codeql-action from 4 to 4.37.3
+- *(deps)* Bump actions/checkout from 6 to 7
+
 ## [0.12.0](https://github.com/trillium-rs/trillium-opentelemetry/compare/v0.11.0...v0.12.0) - 2026-05-11
 
 ### Fixed
